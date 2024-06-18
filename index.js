@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 
 const Comida = require('./models/pessoa');
-const Payment = require('./models/pagamento'); 
-
+const Payment = require('./models/pagamento');
 
 const cipher = {
     algorithm: "aes256",
@@ -37,39 +36,30 @@ async function getCrypto(data) {
     });
 }
 
-//Criar o app
+// Criar o app
 const app = express();
 
-//Configurar a API para ler json
+// Configurar a API para ler json
 app.use(express.urlencoded({
     extended: true
 }));
 
-//permitindo q a api retorne um json e não um xml
+// Permitindo que a API retorne um json e não um xml
 app.use(express.json());
 
-//Conexão com o banco
+// Conexão com o banco
 let url = "mongodb://localhost:27017";
 mongoose.connect(url)
-.then(()=>{
-    console.log("conectamos no banco!!")
-        app.get('/', (rep,res)=>{
-        res.json({message: "Olá, mundo"});
+    .then(() => {
+        console.log("Conectamos no banco!!")
+        app.get('/', (rep, res) => {
+            res.json({ message: "Olá, mundo" });
+        })
+    }).catch((error) => {
+        console.log(error)
     })
-}).catch((error)=>{
-    console.log(error)
-})
 
-
-app.use(
-    express.urlencoded({
-        extended: true,
-    }),
-)
-
-app.use(express.json());
-
-//Rotas 
+// Rotas
 app.post('/pessoa', async (req, res) => {
     const { login, pass, tipo, nome, preco, descricao } = req.body;
 
@@ -82,54 +72,48 @@ app.post('/pessoa', async (req, res) => {
         descricao,
     }
 
-//C do crud
-
-try{
-    let newPass = await getCrypto(pass);
-    const comida = {
-        login,
-        pass: newPass,
-        tipo,
-        nome,
-        preco,
-        descricao
-    };
-    await Comida.create(comida);
-    res.status(201).json({message: 'Comida inserida no sistema com sucesso'});
-} catch(error){
-    res.status(500).json({erro: error});
-}
-})
-
-//R do crud
-
-app.get('/pessoa', async (req, res) =>{
-    try{
-        const people = await Comida.find();
-        res.status(200).json(people)
-    }catch(error){
-        res.status(500).json({erro: error})
+    try {
+        let newPass = await getCrypto(pass);
+        const comida = {
+            login,
+            pass: newPass,
+            tipo,
+            nome,
+            preco,
+            descricao
+        };
+        await Comida.create(comida);
+        res.status(201).json({ message: 'Comida inserida no sistema com sucesso' });
+    } catch (error) {
+        res.status(500).json({ erro: error });
     }
 })
 
-// R do crud Id específico
-app.get('/pessoa/:id', async (req, res) =>{
+app.get('/pessoa', async (req, res) => {
+    try {
+        const people = await Comida.find();
+        res.status(200).json(people);
+    } catch (error) {
+        res.status(500).json({ erro: error });
+    }
+})
+
+app.get('/pessoa/:id', async (req, res) => {
     const id = req.params.id;
 
-    try{
-        const comida = await Comida.findOne({ _id: id})
-        if(!comida){
+    try {
+        const comida = await Comida.findOne({ _id: id })
+        if (!comida) {
             res.status(422).json({ message: 'Usuário não encontrado' })
             return
         }
         res.status(200).json(comida)
-    }catch (error){
-        res.status(500).json({erro: error})
+    } catch (error) {
+        res.status(500).json({ erro: error })
     }
 })
 
-//U do crud
-app.patch('/pessoa/:id', async (req, res) =>{
+app.patch('/pessoa/:id', async (req, res) => {
     const { login, pass, tipo, nome, preco, descricao } = req.body;
     const id = req.params.id;
     const comida = {
@@ -141,43 +125,39 @@ app.patch('/pessoa/:id', async (req, res) =>{
         descricao
     }
 
-    try{
-        const updatedComida = await Comida.updateOne({_id: id}, comida)
-        if (updatedComida.matchedCount === 0){
-            res.status(422).json({message: 'Comida não encontrato'})
+    try {
+        const updatedComida = await Comida.updateOne({ _id: id }, comida)
+        if (updatedComida.matchedCount === 0) {
+            res.status(422).json({ message: 'Comida não encontrada' })
             return
         }
         res.status(200).json(comida)
-    }catch (error){
-        res.status(500).json({erro: error})
+    } catch (error) {
+        res.status(500).json({ erro: error })
     }
 })
 
-//D do crud
-app.delete('/pessoa/:id', async (req, res) =>{
+app.delete('/pessoa/:id', async (req, res) => {
     const id = req.params.id
 
-    const comida = await Comida.findOne({_id: id});
+    const comida = await Comida.findOne({ _id: id });
 
-    if(!comida){
-        res.status(422).json({message: 'Comida não encontrado'})
+    if (!comida) {
+        res.status(422).json({ message: 'Comida não encontrada' })
         return
     }
-    try{
-        await Comida.deleteOne({_id: id})
-        res.status(200).json({message: 'Comida removido com sucesso'})
-    }catch(error){
-        res.status(500).json({erro: error})
+    try {
+        await Comida.deleteOne({ _id: id })
+        res.status(200).json({ message: 'Comida removida com sucesso' })
+    } catch (error) {
+        res.status(500).json({ erro: error })
     }
 });
 
-
-// Rota para cadastrar um pagamento
 app.post('/pagamento', async (req, res) => {
     const { oficialName, paymentType, number, securityCode, valor } = req.body;
 
     try {
-        // Criptografando o número do cartão e o código de segurança
         const encryptedNumeroCartao = await getCrypto(number);
         const encryptedCodigoSeguranca = await getCrypto(securityCode);
 
@@ -197,8 +177,6 @@ app.post('/pagamento', async (req, res) => {
     }
 });
 
-
-// Rota para autenticar o usuário (Login)
 app.post('/login', async (req, res) => {
     let { email, pass } = req.body;
     try {
@@ -216,6 +194,17 @@ app.post('/login', async (req, res) => {
     }
 });
 
+// Nova rota para ler pagamentos
+app.get('/pagamento', async (req, res) => {
+    try {
+        const payments = await Payment.find();
+        res.status(200).json(payments);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
-//Deixar API pública
-app.listen(3000);
+// Deixar API pública
+app.listen(3000, () => {
+    console.log('Servidor rodando na porta 3000');
+});
